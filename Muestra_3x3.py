@@ -88,6 +88,22 @@ def movimiento_es_correcto(direccion_tecla):
         # Instrucción simple
         return direccion_tecla == instruccion
 
+# Verificar estado del juego
+def verificar_estado_juego():
+    global ganador, perdio
+    
+    # Verificar si ganó (llegó al objetivo y completó todas las instrucciones)
+    if x == target_x and y == target_y and instruccion_actual >= len(instrucciones):
+        ganador = True
+        perdio = False
+    # Verificar si perdió (completó todas las instrucciones pero no llegó al objetivo)
+    elif instruccion_actual >= len(instrucciones) and (x != target_x or y != target_y):
+        ganador = False
+        perdio = True
+    else:
+        ganador = False
+        perdio = False
+
 # Dibujar la matriz
 def dibujar_matriz():
     # Fondo
@@ -171,18 +187,20 @@ def mostrar_interfaz():
         screen.blit(ganaste_text, (120, 200))
         screen.blit(instruccion_text, (100, 250))
         
-    elif instruccion_actual >= len(instrucciones):
+    elif perdio:
         # Pantalla de derrota
         pygame.draw.rect(screen, LIGHT_RED, (50, 150, 300, 200), 0, 15)
         pygame.draw.rect(screen, RED, (50, 150, 300, 200), 3, 15)
         
         perdiste_text = font_large.render("❌ PERDISTE", True, RED)
-        motivo_text = font.render("No llegaste al objetivo", True, BLACK)
+        motivo_text = font.render("Completaste las instrucciones", True, BLACK)
+        motivo2_text = font.render("pero no llegaste al objetivo", True, BLACK)
         instruccion_text = font.render("Presiona R para reintentar", True, BLACK)
         
-        screen.blit(perdiste_text, (110, 180))
-        screen.blit(motivo_text, (90, 230))
-        screen.blit(instruccion_text, (80, 260))
+        screen.blit(perdiste_text, (110, 170))
+        screen.blit(motivo_text, (80, 220))
+        screen.blit(motivo2_text, (80, 245))
+        screen.blit(instruccion_text, (80, 280))
         
     else:
         # Juego en progreso
@@ -206,17 +224,19 @@ def mostrar_interfaz():
 
 # Reiniciar juego
 def reiniciar_juego():
-    global x, y, instrucciones, instruccion_actual, ganador, contador_for
+    global x, y, instrucciones, instruccion_actual, ganador, perdio, contador_for
     x, y = 0, 0
     instrucciones = generar_instrucciones()
     instruccion_actual = 0
     ganador = False
+    perdio = False
     contador_for = 0
 
 # Variables del juego
 instrucciones = generar_instrucciones()
 instruccion_actual = 0
 ganador = False
+perdio = False
 contador_for = 0  # Para contar movimientos en instrucciones for
 
 # Bucle principal
@@ -232,7 +252,7 @@ while running:
             if event.key == pygame.K_r:
                 reiniciar_juego()
             
-            elif not ganador and instruccion_actual < len(instrucciones):
+            elif not ganador and not perdio and instruccion_actual < len(instrucciones):
                 direccion = tecla_a_direccion(event.key)
                 
                 if direccion:
@@ -262,9 +282,11 @@ while running:
                             # Movimiento incorrecto - reiniciar
                             reiniciar_juego()
                     
-                    # Verificar victoria
-                    if x == target_x and y == target_y and instruccion_actual >= len(instrucciones):
-                        ganador = True
+                    # Verificar estado después de cada movimiento
+                    verificar_estado_juego()
+    
+    # Verificar estado continuamente (por si acaso)
+    verificar_estado_juego()
     
     # Dibujar todo
     dibujar_matriz()
