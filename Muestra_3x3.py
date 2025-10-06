@@ -17,6 +17,8 @@ BLUE = (50, 100, 200)
 YELLOW = (200, 200, 0)
 GRAY = (200, 200, 200)
 LIGHT_BLUE = (100, 150, 255)
+LIGHT_GREEN = (100, 255, 100)
+LIGHT_RED = (255, 100, 100)
 
 # Crear ventana
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -116,6 +118,7 @@ def dibujar_matriz():
 def mostrar_interfaz():
     font = pygame.font.SysFont('Arial', 18)
     font_bold = pygame.font.SysFont('Arial', 18, bold=True)
+    font_large = pygame.font.SysFont('Arial', 32, bold=True)
     
     # Panel de instrucciones
     pygame.draw.rect(screen, GRAY, (400, 50, 350, 400), 0, 10)
@@ -125,45 +128,81 @@ def mostrar_interfaz():
     screen.blit(titulo, (420, 70))
     
     # Mostrar instrucciones
-    for i, instr in enumerate(instrucciones):
-        color = LIGHT_BLUE if i == instruccion_actual else BLACK
+    max_instrucciones = 12  # Máximo de instrucciones a mostrar
+    start_index = max(0, instruccion_actual - 3)  # Mostrar instrucciones alrededor de la actual
+    
+    for i in range(start_index, min(len(instrucciones), start_index + max_instrucciones)):
+        instr = instrucciones[i]
+        
+        # Determinar color según el estado
         if i < instruccion_actual:
-            color = GREEN
+            color = GREEN  # Completadas
+        elif i == instruccion_actual:
+            color = RED    # Actual
+        else:
+            color = BLACK  # Pendientes
         
         # Formatear mejor las instrucciones for
         if instr.startswith("for"):
             partes = instr.split(" : ")
-            texto_formateado = f"for {partes[0].split(' ')[1]} veces: {partes[1]}"
+            veces = partes[0].split(' ')[1]
+            direccion = partes[1]
+            if i == instruccion_actual and contador_for > 0:
+                texto_formateado = f"for {veces} veces: {direccion} ({contador_for}/{veces})"
+            else:
+                texto_formateado = f"for {veces} veces: {direccion}"
         else:
             texto_formateado = f"mover {instr}"
         
         texto = font.render(f"{i+1:2d}. {texto_formateado}", True, color)
-        screen.blit(texto, (420, 100 + i * 25))
+        screen.blit(texto, (420, 100 + (i - start_index) * 25))
     
-    # Estado del juego
+    # Estado del juego - EVITAR SUPERPOSICIÓN
+    estado_y = 380  # Posición fija para el estado
+    
     if ganador:
-        estado = font_bold.render("🎉 ¡GANASTE! Presiona R para reiniciar", True, GREEN)
+        # Pantalla de victoria
+        pygame.draw.rect(screen, LIGHT_GREEN, (50, 150, 300, 200), 0, 15)
+        pygame.draw.rect(screen, GREEN, (50, 150, 300, 200), 3, 15)
+        
+        ganaste_text = font_large.render("🎉 ¡GANASTE!", True, GREEN)
+        instruccion_text = font.render("Presiona R para reiniciar", True, BLACK)
+        
+        screen.blit(ganaste_text, (120, 200))
+        screen.blit(instruccion_text, (100, 250))
+        
     elif instruccion_actual >= len(instrucciones):
-        estado = font_bold.render("❌ Game Over - Presiona R para reiniciar", True, RED)
+        # Pantalla de derrota
+        pygame.draw.rect(screen, LIGHT_RED, (50, 150, 300, 200), 0, 15)
+        pygame.draw.rect(screen, RED, (50, 150, 300, 200), 3, 15)
+        
+        perdiste_text = font_large.render("❌ PERDISTE", True, RED)
+        motivo_text = font.render("No llegaste al objetivo", True, BLACK)
+        instruccion_text = font.render("Presiona R para reintentar", True, BLACK)
+        
+        screen.blit(perdiste_text, (110, 180))
+        screen.blit(motivo_text, (90, 230))
+        screen.blit(instruccion_text, (80, 260))
+        
     else:
+        # Juego en progreso
         estado = font.render("Usa las FLECHAS para seguir las instrucciones", True, BLUE)
-        screen.blit(estado, (420, 400))
+        screen.blit(estado, (420, estado_y))
         
         # Mostrar instrucción actual destacada
-        instruccion_actual_texto = font_bold.render(f"Instrucción actual: {instruccion_actual + 1}/{len(instrucciones)}", True, RED)
-        screen.blit(instruccion_actual_texto, (420, 430))
+        instruccion_actual_text = font_bold.render(f"Instrucción actual: {instruccion_actual + 1}/{len(instrucciones)}", True, RED)
+        screen.blit(instruccion_actual_text, (420, estado_y + 30))
     
-    # Posición actual
+    # Información del juego (siempre visible)
+    info_y = 300
     pos_text = font.render(f"Posición: ({x}, {y})", True, BLACK)
-    screen.blit(pos_text, (50, 300))
+    screen.blit(pos_text, (50, info_y))
     
-    # Objetivo
     obj_text = font.render(f"Objetivo: ({target_x}, {target_y})", True, GREEN)
-    screen.blit(obj_text, (50, 330))
+    screen.blit(obj_text, (50, info_y + 30))
     
-    # Movimientos restantes
-    mov_text = font.render(f"Instrucciones completadas: {instruccion_actual}/{len(instrucciones)}", True, BLACK)
-    screen.blit(mov_text, (50, 360))
+    mov_text = font.render(f"Instrucciones: {instruccion_actual}/{len(instrucciones)}", True, BLACK)
+    screen.blit(mov_text, (50, info_y + 60))
 
 # Reiniciar juego
 def reiniciar_juego():
@@ -212,7 +251,6 @@ while running:
                                 contador_for = 0
                         else:
                             # Movimiento incorrecto - reiniciar
-                            print("Movimiento incorrecto en for!")
                             reiniciar_juego()
                     
                     else:
@@ -222,7 +260,6 @@ while running:
                             instruccion_actual += 1
                         else:
                             # Movimiento incorrecto - reiniciar
-                            print("Movimiento incorrecto!")
                             reiniciar_juego()
                     
                     # Verificar victoria
