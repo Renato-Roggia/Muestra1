@@ -1,5 +1,5 @@
 # Makefile simple para ejecutar el juego
-APP = juego.py
+APP = Muestra_3x3.py
 
 run:
 	@echo "🚀 Ejecutando el juego..."
